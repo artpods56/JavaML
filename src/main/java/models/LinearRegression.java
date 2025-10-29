@@ -2,6 +2,7 @@ package models;
 
 import cost.MSE;
 import utils.ArrayValidator;
+import utils.MinMaxScaller;
 
 import java.util.ArrayList;
 
@@ -13,6 +14,21 @@ public class LinearRegression {
     private int epochs;
     private MSE mse;
 
+    public double getIntercept() {
+        return intercept;
+    }
+
+    public void setIntercept(double intercept) {
+        this.intercept = intercept;
+    }
+
+    public double getSlope() {
+        return slope;
+    }
+
+    public void setSlope(double slope) {
+        this.slope = slope;
+    }
 
     public LinearRegression(double learningRate, int epochs) throws Exception{
         this.validateModelParams(learningRate, epochs);
@@ -38,15 +54,15 @@ public class LinearRegression {
         return (this.slope * x) + this.intercept;
     }
 
-    private double computeSlopeDerivative(ArrayList<Double> xArray, ArrayList<Double> yTrue, ArrayList<Double> yPred) {
+    private double computeSlopeDerivative(ArrayList<Double> xFeature, ArrayList<Double> yTrue, ArrayList<Double> yPred) {
 
         double derivativeSum = 0;
 
         for (int i = 0; i < yTrue.size(); i++) {
-            derivativeSum += xArray.get(i)*(yTrue.get(i) - yPred.get(i));
+            derivativeSum += xFeature.get(i)*(yTrue.get(i) - yPred.get(i));
         }
 
-        return (-2 * derivativeSum) / xArray.size();
+        return (-2 * derivativeSum) / xFeature.size();
     }
 
     private double computeInterceptDerivative(ArrayList<Double> yTrue, ArrayList<Double> yPred) {
@@ -60,27 +76,30 @@ public class LinearRegression {
         return (-2 * derivativeSum) / yTrue.size();
     }
 
-    public void fit(ArrayList<Double> xArray, ArrayList<Double> yTrue) throws Exception {
-        ArrayValidator.validateInputs(yTrue,xArray);
+    public void fit_transform(ArrayList<Double> xFeature, ArrayList<Double> yTrue) throws Exception {
+        ArrayValidator.validateInputs(yTrue,xFeature);
+
+        xFeature = MinMaxScaller.transform(xFeature);
+        yTrue = MinMaxScaller.transform(yTrue);
 
         for (int i = 0; i < this.epochs; i++) {
-            ArrayList<Double> yPred = this.predict(xArray);
+            ArrayList<Double> yPred = this.predict(xFeature);
 
-            this.slope = this.slope - (this.learningRate * this.computeSlopeDerivative(xArray, yTrue, yPred));
+            this.slope = this.slope - (this.learningRate * this.computeSlopeDerivative(xFeature, yTrue, yPred));
             this.intercept = this.intercept - (this.learningRate * this.computeInterceptDerivative(yTrue, yPred));
 
             if (i % 10 == 0) {
                 double mse = this.mse.computeCost(yTrue, yPred);
-                System.out.printf("Epoch: " + i + ", Loss: " + mse);
+                System.out.println("Epoch: " + i + ", Loss: " + mse);
             }
 
         }
 
         this.isFitted = true;
-
-
-
     }
+
+
+
 
     public ArrayList<Double> predict(ArrayList<Double> xArray) {
         ArrayList<Double> result = new ArrayList<Double>();
